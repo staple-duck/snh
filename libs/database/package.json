@@ -1,0 +1,28 @@
+{
+  "name": "@snh/database",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.3.0",
+    "@prisma/adapter-pg": "^7.3.0",
+    "@nestjs/common": "^11.1.12",
+    "pg": "^8.17.2"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.2",
+    "@types/node": "20.19.9",
+    "@types/pg": "^8.16.0"
+  }
+}

@@ -1,0 +1,43 @@
+node_modules
+dist
+.nx
+.next
+out
+tmp
+coverage
+.cache
+.turbo
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.git
+.vscode
+.idea
+*.swp
+*.swo
+
+# Documentation (except README)
+*.md
+!README.md
+
+# CI/CD
+.github
+.gitlab-ci.yml
+
+# App-specific build artifacts
+apps/*/dist
+apps/*/.next

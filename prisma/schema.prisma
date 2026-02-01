@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model TreeNode {
+  id        String     @id @default(uuid())
+  label     String
+  parentId  String?
+  parent    TreeNode?  @relation("TreeToTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  TreeNode[] @relation("TreeToTree")
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([parentId])
+}

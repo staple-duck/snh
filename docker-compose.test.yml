@@ -1,0 +1,35 @@
+services:
+  test-db:
+    image: postgres:16-alpine
+    container_name: snh-test-db
+    environment:
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_DB: snh_test
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts with dev DB
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d snh_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    tmpfs:
+      - /var/lib/postgresql/data  # In-memory for faster tests
+
+  test-runner:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.test
+    container_name: snh-test-runner
+    depends_on:
+      test-db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://test_user:test_password@test-db:5432/snh_test?schema=public
+      API_PORT: 3000
+      API_PREFIX: api
+      CORS_ORIGINS: "*"
+      SWAGGER_ENABLED: "false"
+    volumes:
+      - ./coverage:/app/coverage  # Export test coverage reports

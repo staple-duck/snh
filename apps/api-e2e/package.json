@@ -1,0 +1,13 @@
+{
+  "name": "@snh/api-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "e2e": "jest --config=jest.config.cts"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0",
+    "axios": "^1.13.3",
+    "@types/node": "20.19.9"
+  }
+}

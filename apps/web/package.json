@@ -1,0 +1,28 @@
+{
+  "name": "@snh/web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev -p 4200",
+    "start": "next start -p 4200",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@snh/shared-types": "*",
+    "next": "^16.1.6",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@xyflow/react": "^12.10.0",
+    "@uiw/react-json-view": "^2.0.0-alpha.41",
+    "axios": "^1.13.3",
+    "dagre": "^0.8.5",
+    "react-hot-toast": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/dagre": "^0.7.53",
+    "typescript": "~5.9.2"
+  }
+}

@@ -1,0 +1,149 @@
+FROM node:20-alpine AS prepare
+WORKDIR /app
+RUN npm install -g turbo@^2
+COPY . .
+
+FROM node:20-alpine AS test
+WORKDIR /app
+
+# Install utilities for healthcheck
+RUN apk add --no-cache wget
+
+# Copy workspace configuration
+COPY --from=prepare /app/package*.json ./
+COPY --from=prepare /app/turbo.json ./
+COPY --from=prepare /app/tsconfig.base.json ./
+COPY --from=prepare /app/jest.config.ts ./
+COPY --from=prepare /app/jest.preset.js ./
+COPY --from=prepare /app/apps ./apps
+COPY --from=prepare /app/libs ./libs
+COPY --from=prepare /app/prisma ./prisma
+COPY --from=prepare /app/prisma.config.ts ./
+
+# Install all dependencies
+RUN npm install
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Build all packages for e2e tests
+RUN npm run build
+
+# Copy package.json files to dist folders for proper module resolution
+RUN cp /app/libs/database/package.json /app/libs/database/dist/ && \
+    cp /app/libs/shared-types/package.json /app/libs/shared-types/dist/
+
+# Create test entrypoint script
+RUN printf '#!/bin/sh\n\
+set -e\n\
+\n\
+echo ""\n\
+echo "╔════════════════════════════════════════════════════════════╗"\n\
+echo "║           SNH Tree API - Test Suite Runner                ║"\n\
+echo "╚════════════════════════════════════════════════════════════╝"\n\
+echo ""\n\
+echo "🔧 Setting up test environment..."\n\
+echo "📦 Running database migrations..."\n\
+npx prisma migrate deploy\n\
+echo "✅ Database ready"\n\
+echo ""\n\
+\n\
+echo "┌────────────────────────────────────────────────────────────┐"\n\
+echo "│  STEP 1/2: Unit Tests                                     │"\n\
+echo "└────────────────────────────────────────────────────────────┘"\n\
+npm run test:unit\n\
+UNIT_EXIT=$?\n\
+\n\
+if [ $UNIT_EXIT -ne 0 ]; then\n\
+  echo ""\n\
+  echo "❌ Unit tests failed!"\n\
+  echo ""\n\
+  exit $UNIT_EXIT\n\
+fi\n\
+\n\
+echo ""\n\
+echo "✅ Unit tests passed!"\n\
+echo ""\n\
+\n\
+echo "┌────────────────────────────────────────────────────────────┐"\n\
+echo "│  STEP 2/2: E2E Tests                                      │"\n\
+echo "└────────────────────────────────────────────────────────────┘"\n\
+echo "🚀 Starting API server..."\n\
+\n\
+# Find the API main file\n\
+echo "Searching for API entry point..."\n\
+if [ -f "/app/dist/apps/api/src/main.js" ]; then\n\
+  API_MAIN="/app/dist/apps/api/src/main.js"\n\
+  API_DIR="/app"\n\
+  API_CMD="dist/apps/api/src/main.js"\n\
+elif [ -f "/app/apps/api/dist/main.js" ]; then\n\
+  API_MAIN="/app/apps/api/dist/main.js"\n\
+  API_DIR="/app/apps/api"\n\
+  API_CMD="dist/main.js"\n\
+elif [ -f "/app/apps/api/dist/apps/api/src/main.js" ]; then\n\
+  API_MAIN="/app/apps/api/dist/apps/api/src/main.js"\n\
+  API_DIR="/app/apps/api"\n\
+  API_CMD="dist/apps/api/src/main.js"\n\
+else\n\
+  echo "❌ API build not found! Searching..."\n\
+  find /app -name "main.js" -path "*/api/*" 2>/dev/null || true\n\
+  exit 1\n\
+fi\n\
+\n\
+echo "Found API at: $API_MAIN"\n\
+\n\
+# Create proper node_modules symlinks for workspace packages\n\
+echo "Setting up workspace module links..."\n\
+mkdir -p /app/node_modules/@snh\n\
+\n\
+# Create symlinks directly to lib folders (not dist) so package.json main field works\n\
+ln -sfn /app/libs/database /app/node_modules/@snh/database\n\
+ln -sfn /app/libs/shared-types /app/node_modules/@snh/shared-types\n\
+echo "✓ Workspace packages linked"\n\
+\n\
+# Start API WITHOUT tsconfig-paths (use package.json main field instead)\n\
+cd /app && node apps/api/dist/apps/api/src/main.js > /tmp/api.log 2>&1 &\n\
+API_PID=$!\n\
+\n\
+echo "⏳ Waiting for API to be ready (PID: $API_PID)..."\n\
+for i in 1 2 3 4 5 6 7 8 9 10 11 12; do\n\
+  sleep 1\n\
+  \n\
+  # Check if process is still running\n\
+  if ! kill -0 $API_PID 2>/dev/null; then\n\
+    echo "❌ API process died! Last 20 lines of log:"\n\
+    tail -20 /tmp/api.log || echo "No log file"\n\
+    exit 1\n\
+  fi\n\
+  \n\
+  if wget -q --spider http://localhost:3000/api/health 2>/dev/null; then\n\
+    echo "✅ API server is ready"\n\
+    break\n\
+  fi\n\
+  echo "   Attempt $i/12..."\n\
+done\n\
+\n\
+echo ""\n\
+API_URL=http://localhost:3000/api npm run test:e2e\n\
+E2E_EXIT=$?\n\
+\n\
+echo ""\n\
+echo "🛑 Stopping API server..."\n\
+kill $API_PID 2>/dev/null || true\n\
+wait $API_PID 2>/dev/null || true\n\
+\n\
+if [ $E2E_EXIT -ne 0 ]; then\n\
+  echo ""\n\
+  echo "❌ E2E tests failed!"\n\
+  echo ""\n\
+  exit $E2E_EXIT\n\
+fi\n\
+\n\
+echo ""\n\
+echo "╔════════════════════════════════════════════════════════════╗"\n\
+echo "║  ✅  ALL TESTS PASSED SUCCESSFULLY!                       ║"\n\
+echo "╚════════════════════════════════════════════════════════════╝"\n\
+echo ""\n\
+exit 0\n' > /app/test-entrypoint.sh && chmod +x /app/test-entrypoint.sh
+
+ENTRYPOINT ["/app/test-entrypoint.sh"]
