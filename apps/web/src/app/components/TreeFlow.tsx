@@ -195,14 +195,29 @@ function TreeFlowContent({ treeData, loading, onDataChange }: TreeFlowProps) {
           toast.success('Node connected successfully');
         }
       } catch (error: any) {
-        // Silently ignore if node doesn't exist
-        if (error.response?.status === 404 || error.response?.status === 400) {
+        const status = error.response?.status;
+        const message = error.response?.data?.message || 'Failed to connect nodes';
+        
+        // Silently ignore only 404 (node deleted)
+        if (status === 404) {
           console.log('Node no longer exists, skipping connect');
           return;
         }
         
+        // Show error for 400 (validation errors like circular reference)
+        if (status === 400) {
+          console.error('Validation error:', message);
+          toast.error(message, {
+            duration: 4000,
+            icon: '⚠️',
+          });
+          if (onDataChange) onDataChange(); // Refresh to revert UI
+          return;
+        }
+        
+        // Show error for all other cases
         console.error('Error connecting nodes:', error);
-        toast.error(error.response?.data?.message || 'Failed to connect nodes');
+        toast.error(message);
       }
     },
     [onDataChange]
@@ -218,14 +233,29 @@ function TreeFlowContent({ treeData, loading, onDataChange }: TreeFlowProps) {
         if (onDataChange) onDataChange();
         toast.success('Node reparented successfully');
       } catch (error: any) {
-        // Silently ignore if node doesn't exist (already deleted during cleanup)
-        if (error.response?.status === 404 || error.response?.status === 400) {
+        const status = error.response?.status;
+        const message = error.response?.data?.message || 'Failed to reconnect node';
+        
+        // Silently ignore only 404 (node deleted)
+        if (status === 404) {
           console.log('Node no longer exists, skipping reconnect');
           return;
         }
         
+        // Show error for 400 (validation errors like circular reference)
+        if (status === 400) {
+          console.error('Validation error:', message);
+          toast.error(message, {
+            duration: 4000,
+            icon: '⚠️',
+          });
+          if (onDataChange) onDataChange(); // Refresh to revert UI
+          return;
+        }
+        
+        // Show error for all other cases
         console.error('Error reconnecting edge:', error);
-        toast.error(error.response?.data?.message || 'Failed to reconnect node');
+        toast.error(message);
         if (onDataChange) onDataChange();
       }
     },
