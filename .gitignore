@@ -1,54 +1,55 @@
-# dependencies
-/node_modules
-/.pnp
+# Dependencies
+node_modules/
+.pnp
 .pnp.js
-/context/
 
-# testing
-/coverage
-/.next/
-/out/
-/build
-
-# next.js
-/.next/
-/out/
-
-# production
-/dist
+# Production & Build
 dist/
-**/dist
+build/
+out/
 
-# misc
-.DS_Store
-*.pem
+# Next.js
+.next/
+next-env.d.ts
 
-# debug
+# Testing
+coverage/
+
+# Environment
+.env
+.env*.local
+!.env.example
+
+# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+*.log
 
-# local env files
-.env*.local
+# Turborepo
+.turbo/
+tmp/
 
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# turborepo
-.turbo
-/tmp
-
-# IDE
-.idea
+# IDEs
+.idea/
 .vscode/*
 !.vscode/extensions.json
 !.vscode/launch.json
+!.vscode/settings.json
+*.swp
+*.swo
 
-# prisma
-.env
+# OS
+.DS_Store
+Thumbs.db
+*.pem
 
-/generated/prisma
+# Vercel
+.vercel/
+
+# TypeScript
+*.tsbuildinfo
+
+# Prisma
+generated/
