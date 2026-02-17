@@ -54,12 +54,16 @@ export function validate(config: Record<string, unknown>) {
     { enableImplicitConversion: true },
   );
   
-  const errors = validateSync(validatedConfig, { 
-    skipMissingProperties: false 
+  const errors = validateSync(validatedConfig, {
+    skipMissingProperties: false,
   });
 
   if (errors.length > 0) {
-    throw new Error(errors.toString());
+    const messages = errors.map((e) => {
+      const constraints = e.constraints ? Object.values(e.constraints).join(', ') : 'invalid';
+      return `${e.property}: ${constraints}`;
+    });
+    throw new Error(`Environment validation failed:\n${messages.join('\n')}`);
   }
   
   return validatedConfig;

@@ -10,6 +10,8 @@ export default defineConfig({
     seed: "npx tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    url:
+      process.env["DATABASE_URL"] ??
+      "postgresql://user:password@localhost:5432/snh_tree?schema=public",
   },
 });

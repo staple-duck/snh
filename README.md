@@ -144,16 +144,9 @@ For local development with hot reload:
 # Install dependencies
 npm install
 
-# Start database
-docker compose up db -d
+cp .env.example .env
 
-# Run migrations and seed
-npx prisma migrate deploy
-npx prisma db seed
-
-# Start services (in separate terminals)
-npm run dev --filter=@snh/api      # API on :3000
-npm run dev --filter=@snh/web      # Web on :4200
+npm run dev
 ```
 
 ---
