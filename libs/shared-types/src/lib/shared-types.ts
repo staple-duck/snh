@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsUUID, MinLength } from 'class-validator';
+import { IsString, IsOptional, IsUUID, MinLength, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateTreeNodeDto {
@@ -24,6 +24,16 @@ export class UpdateTreeNodeDto {
   @IsOptional()
   @IsUUID()
   parentId?: string | null;
+}
+
+export class CloneTreeNodeDto {
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000', description: 'The UUID of the node to clone' })
+  @IsUUID()
+  nodeId!: string;
+
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000', description: 'The UUID of the new parent node' })
+  @IsUUID()
+  targetParentId!: string;
 }
 
 export interface TreeNode {

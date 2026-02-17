@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@snh/database';
-import { CreateTreeNodeDto, UpdateTreeNodeDto, TreeNode, DeleteResponse } from '@snh/shared-types';
+import { CreateTreeNodeDto, UpdateTreeNodeDto, CloneTreeNodeDto, TreeNode, DeleteResponse } from '@snh/shared-types';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
@@ -66,6 +66,60 @@ export class TreeService {
         ...(parentId !== undefined && { parentId })
       },
     });
+  }
+
+  async clone(cloneTreeNodeDto: CloneTreeNodeDto) {
+    const { nodeId, targetParentId } = cloneTreeNodeDto;
+
+    const sourceExists = await this.nodeExists(nodeId);
+    if (!sourceExists) {
+      throw new NotFoundException('Source node not found');
+    }
+
+    const targetExists = await this.nodeExists(targetParentId);
+    if (!targetExists) {
+      throw new NotFoundException('Target parent node not found');
+    }
+
+    // Perform efficient deep clone using raw SQL and CTEs
+    // 1. Select all descendants recursively
+    // 2. Generate new UUIDs for each node
+    // 3. Map parent references to new UUIDs
+    // 4. Insert all new nodes in a single operation
+    const result = await this.prisma.$executeRaw`
+      WITH RECURSIVE source_tree AS (
+        SELECT id, "parentId", label, id as root_id
+        FROM "TreeNode"
+        WHERE id = ${nodeId}::uuid
+        
+        UNION ALL
+        
+        SELECT c.id, c."parentId", c.label, st.root_id
+        FROM "TreeNode" c
+        INNER JOIN source_tree st ON c."parentId" = st.id
+      ),
+      id_map AS (
+        SELECT 
+          id as old_id, 
+          gen_random_uuid() as new_id,
+          "parentId" as old_parent_id,
+          label
+        FROM source_tree
+      )
+      INSERT INTO "TreeNode" (id, label, "parentId", "updatedAt")
+      SELECT 
+        m.new_id, 
+        m.label, 
+        CASE 
+          WHEN m.old_id = ${nodeId}::uuid THEN ${targetParentId}::uuid
+          ELSE pm.new_id
+        END,
+        NOW()
+      FROM id_map m
+      LEFT JOIN id_map pm ON m.old_parent_id = pm.old_id
+    `;
+
+    return { message: 'Successfully cloned tree', count: result };
   }
 
   async delete(id: string): Promise<DeleteResponse> {

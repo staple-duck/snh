@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Delete, Param } from '@nestjs/common';
 import { TreeService } from './tree.service';
-import { CreateTreeNodeDto, UpdateTreeNodeDto } from '@snh/shared-types';
+import { CreateTreeNodeDto, UpdateTreeNodeDto, CloneTreeNodeDto } from '@snh/shared-types';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @ApiTags('tree')
@@ -14,6 +14,14 @@ export class TreeController {
   @ApiResponse({ status: 404, description: 'Parent node not found.' })
   create(@Body() createTreeNodeDto: CreateTreeNodeDto) {
     return this.treeService.create(createTreeNodeDto);
+  }
+
+  @Post('clone')
+  @ApiOperation({ summary: 'Clone a tree node and its descendants to a new parent' })
+  @ApiResponse({ status: 201, description: 'The tree has been successfully cloned.' })
+  @ApiResponse({ status: 404, description: 'Source node or target parent not found.' })
+  clone(@Body() cloneTreeNodeDto: CloneTreeNodeDto) {
+    return this.treeService.clone(cloneTreeNodeDto);
   }
 
   @Get()
